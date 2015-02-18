@@ -17,6 +17,7 @@ const Usage = `
       --topic name --publish name [--channel name]
       [--max-attempts n] [--max-in-flight n]
       [--lookupd-http-address addr...]
+      [--redis-address addr]
       [--level name]
 
     nsq_to_redis -h | --help
@@ -24,6 +25,7 @@ const Usage = `
 
   Options:
     --lookupd-http-address addr  nsqlookupd addresses [default: :4161]
+    --redis-address addr         redis address [default: :6379]
     --max-attempts n             nsq max message attempts [default: 5]
     --max-in-flight n            nsq messages in-flight [default: 250]
     --publish name               redis channel template
@@ -62,7 +64,7 @@ func main() {
 
 	redis := redis.NewClient(&redis.Options{
 		Network:     "tcp",
-		Addr:        ":6379",
+		Addr:        args["--redis-address"].(string),
 		DialTimeout: 10 * time.Second,
 	})
 
