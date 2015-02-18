@@ -9,7 +9,7 @@ import "gopkg.in/redis.v2"
 import "strconv"
 import "time"
 
-var Version = "0.0.1"
+var Version = "0.0.2"
 
 const Usage = `
   Usage:
