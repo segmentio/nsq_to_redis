@@ -24,20 +24,20 @@ type PubSub struct {
 
 // New pubsub with options.
 func New(options *Options) (*PubSub, error) {
-	r := &PubSub{
+	p := &PubSub{
 		Options: options,
 		stats:   stats.New(),
 	}
 
-	tmpl, err := interpolate.New(r.Format)
+	tmpl, err := interpolate.New(p.Format)
 	if err != nil {
 		return nil, err
 	}
 
-	r.template = tmpl
-	go r.stats.TickEvery(10 * time.Second)
+	p.template = tmpl
+	go p.stats.TickEvery(10 * time.Second)
 
-	return r, nil
+	return p, nil
 }
 
 // HandleMessage parses json messages received from NSQ,

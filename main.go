@@ -1,7 +1,7 @@
 package main
 
+import "github.com/segmentio/nsq_to_redis/broadcast"
 import "github.com/segmentio/nsq_to_redis/pubsub"
-
 import "github.com/segmentio/nsq_to_redis/list"
 import "github.com/segmentio/go-log"
 import "github.com/tj/go-gracefully"
@@ -53,6 +53,7 @@ func main() {
 	channel := args["--channel"].(string)
 	topic := args["--topic"].(string)
 
+	broadcast := broadcast.New()
 	config := config(args)
 
 	redis := redis.NewClient(&redis.Options{
@@ -81,7 +82,7 @@ func main() {
 			log.Fatalf("error starting pubsub: %s", err)
 		}
 
-		consumer.AddConcurrentHandlers(pubsub, 25)
+		broadcast.Add(pubsub)
 	}
 
 	// Capped list support.
@@ -103,9 +104,10 @@ func main() {
 			log.Fatalf("error starting list: %s", err)
 		}
 
-		consumer.AddConcurrentHandlers(list, 25)
+		broadcast.Add(list)
 	}
 
+	consumer.AddConcurrentHandlers(broadcast, 50)
 	err = consumer.ConnectToNSQLookupds(lookupds)
 	if err != nil {
 		log.Fatalf("error connecting to nsqds: %s", err)
