@@ -1,17 +1,17 @@
 
 # nsq_to_redis
 
- Publish NSQ messages to Redis PUB/SUB.
+ Publish NSQ messages to Redis Publish/Subscribe:
 
 ```
 $ nsq_to_redis --topic events --publish "projects:{projectId}"
 ```
 
-## Usage
+ Write to capped lists:
 
- Messages are published to Redis according to the `--publish` template provided. Only JSON messages are currently supported, and if the path(s) in the template are not present the publish will fail.
-
- For example suppose your messages have a `userId`, you may want to publish with `--publish "users:{userId}"`, or by nested properties: `--publish "location:{location.city}"`.
+```
+$ nsq_to_redis --topic events --list "events:{projectId}" --list-size 100
+```
 
 # License
 
