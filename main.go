@@ -20,7 +20,8 @@ const Usage = `
       [--max-attempts n] [--max-in-flight n]
       [--lookupd-http-address addr...]
       [--redis-address addr]
-      [--list name] [--publish name]
+      [--list name] [--list-size n]
+      [--publish name]
       [--level name]
 
     nsq_to_redis -h | --help
@@ -31,6 +32,7 @@ const Usage = `
     --redis-address addr         redis address [default: :6379]
     --max-attempts n             nsq max message attempts [default: 5]
     --max-in-flight n            nsq messages in-flight [default: 250]
+    --list-size n                redis list size [default: 100]
     --list name                  redis list template
     --publish name               redis channel template
     --topic name                 nsq consumer topic name
@@ -94,7 +96,12 @@ func main() {
 	}
 
 	if format, ok := args["--list"].(string); ok {
-		log.Info("listing to %q", format)
+		size, err := strconv.Atoi(args["--list-size"].(string))
+		if err != nil {
+			log.Fatalf("error parsing --list-size: %s", err)
+		}
+
+		log.Info("listing to %q (size=%d)", format, size)
 		list, err := list.New(&list.Options{
 			Format: format,
 			Redis:  redis,
