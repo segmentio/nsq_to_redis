@@ -1,4 +1,4 @@
-package pubsub
+package list
 
 import "github.com/segmentio/go-interpolate"
 import "github.com/segmentio/go-stats"
@@ -10,21 +10,22 @@ import "time"
 
 // Options.
 type Options struct {
-	Format string        // Redis publish channel format
+	Format string        // Redis list key format
 	Redis  *redis.Client // Redis client
 	Log    *log.Logger   // Logger
+	Size   int64         // List size
 }
 
-// PubSub publishes messages to a formatted channel.
-type PubSub struct {
+// List writes messages to capped lists.
+type List struct {
 	template *interpolate.Template
 	stats    *stats.Stats
 	*Options
 }
 
-// New pubsub with options.
-func New(options *Options) (*PubSub, error) {
-	r := &PubSub{
+// New list with options.
+func New(options *Options) (*List, error) {
+	r := &List{
 		Options: options,
 		stats:   stats.New(),
 	}
@@ -41,32 +42,37 @@ func New(options *Options) (*PubSub, error) {
 }
 
 // HandleMessage parses json messages received from NSQ,
-// applies them against the publish channel template to
-// produce the channel name, and then publishes to Redis.
-func (p *PubSub) HandleMessage(msg *nsq.Message) error {
+// applies them against the key template to produce a
+// key name, and writes to the list.
+func (l *List) HandleMessage(msg *nsq.Message) error {
 	var v interface{}
 
 	err := json.Unmarshal(msg.Body, &v)
 	if err != nil {
-		p.Log.Error("parsing json: %s", err)
+		l.Log.Error("parsing json: %s", err)
 		return nil
 	}
 
-	channel, err := p.template.Eval(v)
+	key, err := l.template.Eval(v)
 	if err != nil {
-		p.Log.Error("evaluating template: %s", err)
+		l.Log.Error("evaluating template: %s", err)
 		return nil
 	}
 
-	p.Log.Info("publish %s to %s", msg.ID, channel)
-	p.Log.Debug("contents %s %s", msg.ID, msg.Body)
+	l.Log.Info("pushing %s to %s", msg.ID, key)
+	l.Log.Debug("contents %s %s", msg.ID, msg.Body)
 
-	err = p.Redis.Publish(channel, string(msg.Body)).Err()
+	_, err = l.Redis.Pipelined(func(c *redis.Pipeline) error {
+		c.LPush(key, string(msg.Body))
+		c.LTrim(key, 0, l.Size-1)
+		return nil
+	})
+
 	if err != nil {
-		p.Log.Error("publishing: %s", err)
+		l.Log.Error("pushing: %s", err)
 		return err
 	}
 
-	p.stats.Incr("published")
+	l.stats.Incr("pushed")
 	return nil
 }

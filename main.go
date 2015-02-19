@@ -1,6 +1,8 @@
 package main
 
 import "github.com/segmentio/nsq_to_redis/pubsub"
+
+import "github.com/segmentio/nsq_to_redis/list"
 import "github.com/segmentio/go-log"
 import "github.com/tj/go-gracefully"
 import "github.com/bitly/go-nsq"
@@ -14,10 +16,11 @@ var Version = "0.0.2"
 const Usage = `
   Usage:
     nsq_to_redis
-      --topic name --publish name [--channel name]
+      --topic name [--channel name]
       [--max-attempts n] [--max-in-flight n]
       [--lookupd-http-address addr...]
       [--redis-address addr]
+      [--list name] [--publish name]
       [--level name]
 
     nsq_to_redis -h | --help
@@ -28,6 +31,7 @@ const Usage = `
     --redis-address addr         redis address [default: :6379]
     --max-attempts n             nsq max message attempts [default: 5]
     --max-in-flight n            nsq messages in-flight [default: 250]
+    --list name                  redis list template
     --publish name               redis channel template
     --topic name                 nsq consumer topic name
     --channel name               nsq consumer channel name [default: nsq_to_redis]
@@ -45,7 +49,6 @@ func main() {
 
 	topic := args["--topic"].(string)
 	channel := args["--channel"].(string)
-	publish := args["--publish"].(string)
 	lookupds := args["--lookupd-http-address"].([]string)
 
 	config := nsq.NewConfig()
@@ -75,17 +78,37 @@ func main() {
 
 	log.SetLevelString(args["--level"].(string))
 
-	pubsub, err := pubsub.New(&pubsub.Options{
-		Format: publish,
-		Redis:  redis,
-		Log:    log.Log,
-	})
+	if format, ok := args["--publish"].(string); ok {
+		log.Info("publishing to %q", format)
+		pubsub, err := pubsub.New(&pubsub.Options{
+			Format: format,
+			Redis:  redis,
+			Log:    log.Log,
+		})
 
-	if err != nil {
-		log.Fatalf("error starting pubsub: %s", err)
+		if err != nil {
+			log.Fatalf("error starting pubsub: %s", err)
+		}
+
+		consumer.AddConcurrentHandlers(pubsub, 25)
 	}
 
-	consumer.AddConcurrentHandlers(pubsub, 50)
+	if format, ok := args["--list"].(string); ok {
+		log.Info("listing to %q", format)
+		list, err := list.New(&list.Options{
+			Format: format,
+			Redis:  redis,
+			Log:    log.Log,
+			Size:   20,
+		})
+
+		if err != nil {
+			log.Fatalf("error starting list: %s", err)
+		}
+
+		consumer.AddConcurrentHandlers(list, 25)
+	}
+
 	err = consumer.ConnectToNSQLookupds(lookupds)
 	if err != nil {
 		log.Fatalf("error connecting to nsqds: %s", err)
