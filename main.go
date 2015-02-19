@@ -49,23 +49,11 @@ func main() {
 		log.Fatalf("error parsing arguments: %s", err)
 	}
 
-	topic := args["--topic"].(string)
-	channel := args["--channel"].(string)
 	lookupds := args["--lookupd-http-address"].([]string)
+	channel := args["--channel"].(string)
+	topic := args["--topic"].(string)
 
-	config := nsq.NewConfig()
-
-	n, err := strconv.Atoi(args["--max-attempts"].(string))
-	if err != nil {
-		log.Fatalf("error parsing --max-attempts: %s", err)
-	}
-	config.MaxAttempts = uint16(n)
-
-	n, err = strconv.Atoi(args["--max-in-flight"].(string))
-	if err != nil {
-		log.Fatalf("error parsing --max-in-flight: %s", err)
-	}
-	config.MaxInFlight = n
+	config := config(args)
 
 	redis := redis.NewClient(&redis.Options{
 		Network:     "tcp",
@@ -80,6 +68,7 @@ func main() {
 
 	log.SetLevelString(args["--level"].(string))
 
+	// Pub/Sub support.
 	if format, ok := args["--publish"].(string); ok {
 		log.Info("publishing to %q", format)
 		pubsub, err := pubsub.New(&pubsub.Options{
@@ -95,6 +84,7 @@ func main() {
 		consumer.AddConcurrentHandlers(pubsub, 25)
 	}
 
+	// Capped list support.
 	if format, ok := args["--list"].(string); ok {
 		size, err := strconv.Atoi(args["--list-size"].(string))
 		if err != nil {
@@ -124,9 +114,26 @@ func main() {
 	gracefully.Shutdown()
 
 	log.Info("stopping")
-
 	consumer.Stop()
 	<-consumer.StopChan
-
 	log.Info("bye :)")
+}
+
+// Parse NSQ configuration from args.
+func config(args map[string]interface{}) *nsq.Config {
+	config := nsq.NewConfig()
+
+	n, err := strconv.Atoi(args["--max-attempts"].(string))
+	if err != nil {
+		log.Fatalf("error parsing --max-attempts: %s", err)
+	}
+	config.MaxAttempts = uint16(n)
+
+	n, err = strconv.Atoi(args["--max-in-flight"].(string))
+	if err != nil {
+		log.Fatalf("error parsing --max-in-flight: %s", err)
+	}
+	config.MaxInFlight = n
+
+	return config
 }
