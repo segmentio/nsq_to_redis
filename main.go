@@ -1,6 +1,6 @@
 package main
 
-import "github.com/segmentio/nsq_to_redis/relay"
+import "github.com/segmentio/nsq_to_redis/pubsub"
 import "github.com/segmentio/go-log"
 import "github.com/tj/go-gracefully"
 import "github.com/bitly/go-nsq"
@@ -75,17 +75,17 @@ func main() {
 
 	log.SetLevelString(args["--level"].(string))
 
-	relay, err := relay.New(&relay.Options{
+	pubsub, err := pubsub.New(&pubsub.Options{
 		Format: publish,
 		Redis:  redis,
 		Log:    log.Log,
 	})
 
 	if err != nil {
-		log.Fatalf("error starting relay: %s", err)
+		log.Fatalf("error starting pubsub: %s", err)
 	}
 
-	consumer.AddConcurrentHandlers(relay, 50)
+	consumer.AddConcurrentHandlers(pubsub, 50)
 	err = consumer.ConnectToNSQLookupds(lookupds)
 	if err != nil {
 		log.Fatalf("error connecting to nsqds: %s", err)

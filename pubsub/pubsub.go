@@ -1,4 +1,4 @@
-package relay
+package pubsub
 
 import "github.com/segmentio/go-interpolate"
 import "github.com/segmentio/go-stats"
@@ -15,16 +15,16 @@ type Options struct {
 	Log    *log.Logger   // Logger
 }
 
-// Relay.
-type Relay struct {
+// PubSub.
+type PubSub struct {
 	template *interpolate.Template
 	stats    *stats.Stats
 	*Options
 }
 
 // New relay with options.
-func New(options *Options) (*Relay, error) {
-	r := &Relay{
+func New(options *Options) (*PubSub, error) {
+	r := &PubSub{
 		Options: options,
 		stats:   stats.New(),
 	}
@@ -43,30 +43,30 @@ func New(options *Options) (*Relay, error) {
 // HandleMessage parses json messages received from NSQ,
 // applies them against the publish channel template to
 // produce the channel name, and then publishes to Redis.
-func (r *Relay) HandleMessage(msg *nsq.Message) error {
+func (p *PubSub) HandleMessage(msg *nsq.Message) error {
 	var v interface{}
 
 	err := json.Unmarshal(msg.Body, &v)
 	if err != nil {
-		r.Log.Error("parsing json: %s", err)
+		p.Log.Error("parsing json: %s", err)
 		return nil
 	}
 
-	channel, err := r.template.Eval(v)
+	channel, err := p.template.Eval(v)
 	if err != nil {
-		r.Log.Error("evaluating template: %s", err)
+		p.Log.Error("evaluating template: %s", err)
 		return nil
 	}
 
-	r.Log.Info("publish %s to %s", msg.ID, channel)
-	r.Log.Debug("contents %s %s", msg.ID, msg.Body)
+	p.Log.Info("publish %s to %s", msg.ID, channel)
+	p.Log.Debug("contents %s %s", msg.ID, msg.Body)
 
-	err = r.Redis.Publish(channel, string(msg.Body)).Err()
+	err = p.Redis.Publish(channel, string(msg.Body)).Err()
 	if err != nil {
-		r.Log.Error("publishing: %s", err)
+		p.Log.Error("publishing: %s", err)
 		return err
 	}
 
-	r.stats.Incr("published")
+	p.stats.Incr("published")
 	return nil
 }
