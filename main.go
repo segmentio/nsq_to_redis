@@ -11,7 +11,7 @@ import "gopkg.in/redis.v2"
 import "strconv"
 import "time"
 
-var Version = "0.2.0"
+var Version = "1.0.0"
 
 const Usage = `
   Usage:
