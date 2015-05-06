@@ -20,6 +20,7 @@ const Usage = `
       [--max-attempts n] [--max-in-flight n]
       [--lookupd-http-address addr...]
       [--redis-address addr]
+      [--idle-timeout t]
       [--list name] [--list-size n]
       [--publish name]
       [--level name]
@@ -32,6 +33,7 @@ const Usage = `
     --redis-address addr         redis address [default: :6379]
     --max-attempts n             nsq max message attempts [default: 5]
     --max-in-flight n            nsq messages in-flight [default: 250]
+    --idle-timeout t             idle connection timeout [default: 1m]
     --list-size n                redis list size [default: 100]
     --list name                  redis list template
     --publish name               redis channel template
@@ -56,10 +58,16 @@ func main() {
 	broadcast := broadcast.New()
 	config := config(args)
 
+	idleTimeout, err := time.ParseDuration(args["--idle-timeout"].(string))
+	if err != nil {
+		log.Fatalf("error parsing idle timeout: %s", err)
+	}
+
 	redis := redis.NewClient(&redis.Options{
 		Network:     "tcp",
 		Addr:        args["--redis-address"].(string),
 		DialTimeout: 10 * time.Second,
+		IdleTimeout: idleTimeout,
 	})
 
 	consumer, err := nsq.NewConsumer(topic, channel, config)
