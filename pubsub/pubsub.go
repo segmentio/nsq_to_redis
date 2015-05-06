@@ -1,18 +1,18 @@
 package pubsub
 
 import "github.com/segmentio/go-interpolate"
+import "github.com/garyburd/redigo/redis"
 import "github.com/segmentio/go-stats"
 import "github.com/segmentio/go-log"
 import "github.com/bitly/go-nsq"
-import "gopkg.in/redis.v2"
 import "encoding/json"
 import "time"
 
 // Options.
 type Options struct {
-	Format string        // Redis publish channel format
-	Redis  *redis.Client // Redis client
-	Log    *log.Logger   // Logger
+	Format string      // Redis publish channel format
+	Redis  *redis.Pool // Redis client
+	Log    *log.Logger // Logger
 }
 
 // PubSub publishes messages to a formatted channel.
@@ -61,9 +61,13 @@ func (p *PubSub) HandleMessage(msg *nsq.Message) error {
 	p.Log.Info("publish %s to %s", msg.ID, channel)
 	p.Log.Debug("contents %s %s", msg.ID, msg.Body)
 
-	err = p.Redis.Publish(channel, string(msg.Body)).Err()
+	client := p.Redis.Get()
+	defer client.Close()
+
+	_, err = client.Do("PUBLISH", channel, msg.Body)
+
 	if err != nil {
-		p.Log.Error("publishing: %s", err)
+		p.Log.Error("publish: %s", err)
 		return err
 	}
 

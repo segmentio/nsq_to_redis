@@ -1,19 +1,19 @@
 package list
 
 import "github.com/segmentio/go-interpolate"
+import "github.com/garyburd/redigo/redis"
 import "github.com/segmentio/go-stats"
 import "github.com/segmentio/go-log"
 import "github.com/bitly/go-nsq"
-import "gopkg.in/redis.v2"
 import "encoding/json"
 import "time"
 
 // Options.
 type Options struct {
-	Format string        // Redis list key format
-	Redis  *redis.Client // Redis client
-	Log    *log.Logger   // Logger
-	Size   int64         // List size
+	Format string      // Redis list key format
+	Redis  *redis.Pool // Redis client
+	Log    *log.Logger // Logger
+	Size   int64       // List size
 }
 
 // List writes messages to capped lists.
@@ -62,14 +62,27 @@ func (l *List) HandleMessage(msg *nsq.Message) error {
 	l.Log.Info("pushing %s to %s", msg.ID, key)
 	l.Log.Debug("contents %s %s", msg.ID, msg.Body)
 
-	_, err = l.Redis.Pipelined(func(c *redis.Pipeline) error {
-		c.LPush(key, string(msg.Body))
-		c.LTrim(key, 0, l.Size-1)
-		return nil
-	})
+	client := l.Redis.Get()
+	defer client.Close()
 
+	client.Send("LPUSH", key, msg.Body)
+	client.Send("LTRIM", key, 0, l.Size-1)
+
+	err = client.Flush()
 	if err != nil {
-		l.Log.Error("pushing: %s", err)
+		l.Log.Error("flush: %s", err)
+		return err
+	}
+
+	_, err = client.Receive()
+	if err != nil {
+		l.Log.Error("lpush: %s", err)
+		return err
+	}
+
+	_, err = client.Receive()
+	if err != nil {
+		l.Log.Error("ltrim: %s", err)
 		return err
 	}
 

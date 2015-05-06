@@ -3,15 +3,15 @@ package main
 import "github.com/segmentio/nsq_to_redis/broadcast"
 import "github.com/segmentio/nsq_to_redis/pubsub"
 import "github.com/segmentio/nsq_to_redis/list"
+import "github.com/garyburd/redigo/redis"
 import "github.com/segmentio/go-log"
 import "github.com/tj/go-gracefully"
 import "github.com/bitly/go-nsq"
 import "github.com/tj/docopt"
-import "gopkg.in/redis.v2"
 import "strconv"
 import "time"
 
-var Version = "1.0.0"
+var Version = "1.0.1"
 
 const Usage = `
   Usage:
@@ -63,12 +63,13 @@ func main() {
 		log.Fatalf("error parsing idle timeout: %s", err)
 	}
 
-	redis := redis.NewClient(&redis.Options{
-		Network:     "tcp",
-		Addr:        args["--redis-address"].(string),
-		DialTimeout: 10 * time.Second,
-		IdleTimeout: idleTimeout,
-	})
+	pool := &redis.Pool{
+		IdleTimeout:  idleTimeout,
+		MaxIdle:      15,
+		MaxActive:    100,
+		Dial:         dial(args["--redis-address"].(string)),
+		TestOnBorrow: ping,
+	}
 
 	consumer, err := nsq.NewConsumer(topic, channel, config)
 	if err != nil {
@@ -82,7 +83,7 @@ func main() {
 		log.Info("publishing to %q", format)
 		pubsub, err := pubsub.New(&pubsub.Options{
 			Format: format,
-			Redis:  redis,
+			Redis:  pool,
 			Log:    log.Log,
 		})
 
@@ -103,7 +104,7 @@ func main() {
 		log.Info("listing to %q (size=%d)", format, size)
 		list, err := list.New(&list.Options{
 			Format: format,
-			Redis:  redis,
+			Redis:  pool,
 			Log:    log.Log,
 			Size:   20,
 		})
@@ -146,4 +147,17 @@ func config(args map[string]interface{}) *nsq.Config {
 	config.MaxInFlight = n
 
 	return config
+}
+
+// Dialer.
+func dial(addr string) func() (redis.Conn, error) {
+	return func() (redis.Conn, error) {
+		return redis.Dial("tcp", addr)
+	}
+}
+
+// Idle connection test.
+func ping(client redis.Conn, t time.Time) error {
+	_, err := client.Do("PING")
+	return err
 }
