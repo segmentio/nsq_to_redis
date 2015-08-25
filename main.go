@@ -19,6 +19,7 @@ const Usage = `
       --topic name [--channel name]
       [--max-attempts n] [--max-in-flight n]
       [--lookupd-http-address addr...]
+      [--nsqd-tcp-address addr...]
       [--redis-address addr]
       [--idle-timeout t]
       [--list name] [--list-size n]
@@ -30,6 +31,7 @@ const Usage = `
 
   Options:
     --lookupd-http-address addr  nsqlookupd addresses [default: :4161]
+    --nsqd-tcp-address addr      nsqd tcp addresses
     --redis-address addr         redis address [default: :6379]
     --max-attempts n             nsq max message attempts [default: 5]
     --max-in-flight n            nsq messages in-flight [default: 250]
@@ -117,7 +119,12 @@ func main() {
 	}
 
 	consumer.AddConcurrentHandlers(broadcast, 50)
-	err = consumer.ConnectToNSQLookupds(lookupds)
+
+	if nsqds, ok := args["--nsqd-tcp-address"].([]string); ok {
+		err = consumer.ConnectToNSQDs(nsqds)
+	} else {
+		err = consumer.ConnectToNSQLookupds(lookupds)
+	}
 	if err != nil {
 		log.Fatalf("error connecting to nsqds: %s", err)
 	}
