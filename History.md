@@ -1,4 +1,10 @@
 
+v1.1.0 / 2015-08-25
+==================
+
+  * add nsqds argument that overrides nsqlookupd
+
+
 v1.0.2 / 2015-05-06
 ===================
 

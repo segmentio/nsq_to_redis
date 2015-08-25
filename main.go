@@ -11,7 +11,7 @@ import "github.com/tj/docopt"
 import "strconv"
 import "time"
 
-var Version = "1.0.2"
+var Version = "1.1.0"
 
 const Usage = `
   Usage:
