@@ -119,8 +119,9 @@ func main() {
 	}
 
 	consumer.AddConcurrentHandlers(broadcast, 50)
+	nsqds := args["--nsqd-tcp-address"].([]string)
 
-	if nsqds, ok := args["--nsqd-tcp-address"].([]string); ok {
+	if len(nsqds) > 0 {
 		err = consumer.ConnectToNSQDs(nsqds)
 	} else {
 		err = consumer.ConnectToNSQLookupds(lookupds)
