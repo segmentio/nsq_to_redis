@@ -1,15 +1,18 @@
 package main
 
-import "github.com/segmentio/nsq_to_redis/broadcast"
-import "github.com/segmentio/nsq_to_redis/pubsub"
-import "github.com/segmentio/nsq_to_redis/list"
-import "github.com/garyburd/redigo/redis"
-import "github.com/segmentio/go-log"
-import "github.com/tj/go-gracefully"
-import "github.com/bitly/go-nsq"
-import "github.com/tj/docopt"
-import "strconv"
-import "time"
+import (
+	"strconv"
+	"time"
+
+	"github.com/bitly/go-nsq"
+	"github.com/garyburd/redigo/redis"
+	"github.com/segmentio/go-log"
+	"github.com/segmentio/nsq_to_redis/broadcast"
+	"github.com/segmentio/nsq_to_redis/list"
+	"github.com/segmentio/nsq_to_redis/pubsub"
+	"github.com/tj/docopt"
+	"github.com/tj/go-gracefully"
+)
 
 var Version = "1.1.0"
 
@@ -119,8 +122,9 @@ func main() {
 	}
 
 	consumer.AddConcurrentHandlers(broadcast, 50)
+	nsqds := args["--nsqd-tcp-address"].([]string)
 
-	if nsqds, ok := args["--nsqd-tcp-address"].([]string); ok {
+	if len(nsqds) > 0 {
 		err = consumer.ConnectToNSQDs(nsqds)
 	} else {
 		err = consumer.ConnectToNSQLookupds(lookupds)
