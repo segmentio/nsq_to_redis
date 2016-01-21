@@ -1,18 +1,23 @@
 package pubsub
 
-import "github.com/segmentio/go-interpolate"
-import "github.com/garyburd/redigo/redis"
-import "github.com/segmentio/go-stats"
-import "github.com/segmentio/go-log"
-import "github.com/bitly/go-nsq"
-import "encoding/json"
-import "time"
+import (
+	"encoding/json"
+	"time"
 
-// Options.
+	"github.com/bitly/go-nsq"
+	"github.com/garyburd/redigo/redis"
+	"github.com/segmentio/go-interpolate"
+	"github.com/segmentio/go-log"
+	"github.com/segmentio/go-stats"
+	"github.com/statsd/client"
+)
+
+// Options for PubSub.
 type Options struct {
-	Format string      // Redis publish channel format
-	Redis  *redis.Pool // Redis client
-	Log    *log.Logger // Logger
+	Format  string         // Redis publish channel format
+	Redis   *redis.Pool    // Redis client
+	Log     *log.Logger    // Logger
+	Metrics *statsd.Client // Metrics
 }
 
 // PubSub publishes messages to a formatted channel.
@@ -45,6 +50,7 @@ func New(options *Options) (*PubSub, error) {
 // produce the channel name, and then publishes to Redis.
 func (p *PubSub) HandleMessage(msg *nsq.Message) error {
 	var v interface{}
+	start := time.Now()
 
 	err := json.Unmarshal(msg.Body, &v)
 	if err != nil {
@@ -71,6 +77,8 @@ func (p *PubSub) HandleMessage(msg *nsq.Message) error {
 		return err
 	}
 
+	p.Metrics.Duration("timers.published", time.Since(start))
+	p.Metrics.Incr("counts.published")
 	p.stats.Incr("published")
 	return nil
 }

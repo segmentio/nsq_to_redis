@@ -1,19 +1,24 @@
 package list
 
-import "github.com/segmentio/go-interpolate"
-import "github.com/garyburd/redigo/redis"
-import "github.com/segmentio/go-stats"
-import "github.com/segmentio/go-log"
-import "github.com/bitly/go-nsq"
-import "encoding/json"
-import "time"
+import (
+	"encoding/json"
+	"time"
 
-// Options.
+	"github.com/bitly/go-nsq"
+	"github.com/garyburd/redigo/redis"
+	"github.com/segmentio/go-interpolate"
+	"github.com/segmentio/go-log"
+	"github.com/segmentio/go-stats"
+	"github.com/statsd/client"
+)
+
+// Options for List.
 type Options struct {
-	Format string      // Redis list key format
-	Redis  *redis.Pool // Redis client
-	Log    *log.Logger // Logger
-	Size   int64       // List size
+	Format  string         // Redis list key format
+	Redis   *redis.Pool    // Redis client
+	Metrics *statsd.Client // Metrics
+	Log     *log.Logger    // Logger
+	Size    int64          // List size
 }
 
 // List writes messages to capped lists.
@@ -46,6 +51,7 @@ func New(options *Options) (*List, error) {
 // key name, and writes to the list.
 func (l *List) HandleMessage(msg *nsq.Message) error {
 	var v interface{}
+	start := time.Now()
 
 	err := json.Unmarshal(msg.Body, &v)
 	if err != nil {
@@ -86,6 +92,8 @@ func (l *List) HandleMessage(msg *nsq.Message) error {
 		return err
 	}
 
+	l.Metrics.Duration("timers.pushed", time.Since(start))
+	l.Metrics.Incr("counts.pushed")
 	l.stats.Incr("pushed")
 	return nil
 }

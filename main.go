@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"strconv"
 	"time"
 
@@ -10,17 +11,20 @@ import (
 	"github.com/segmentio/nsq_to_redis/broadcast"
 	"github.com/segmentio/nsq_to_redis/list"
 	"github.com/segmentio/nsq_to_redis/pubsub"
+	"github.com/statsd/client"
 	"github.com/tj/docopt"
 	"github.com/tj/go-gracefully"
 )
 
-var Version = "1.1.0"
+var version = "1.1.0"
 
-const Usage = `
+const usage = `
   Usage:
     nsq_to_redis
       --topic name [--channel name]
       [--max-attempts n] [--max-in-flight n]
+      [--statsd addr]
+      [--statsd-prefix prefix]
       [--lookupd-http-address addr...]
       [--nsqd-tcp-address addr...]
       [--redis-address addr]
@@ -44,14 +48,16 @@ const Usage = `
     --publish name               redis channel template
     --topic name                 nsq consumer topic name
     --channel name               nsq consumer channel name [default: nsq_to_redis]
-    --level name                 log level [default: warning]
+    --level name                 log level [default: info]
+    --statsd addr                tcp address [default: ]
+    --statsd-prefix prefix       prefix for statsd [default: nsq_to_redis.]
     -h, --help                   output help information
     -v, --version                output version
 
 `
 
 func main() {
-	args, err := docopt.Parse(Usage, nil, true, Version, false)
+	args, err := docopt.Parse(usage, nil, true, version, false)
 	if err != nil {
 		log.Fatalf("error parsing arguments: %s", err)
 	}
@@ -59,6 +65,14 @@ func main() {
 	lookupds := args["--lookupd-http-address"].([]string)
 	channel := args["--channel"].(string)
 	topic := args["--topic"].(string)
+
+	var metrics *statsd.Client
+	if addr := args["--statsd"].(string); addr != "" {
+		metrics, err = statsd.Dial(addr)
+	} else {
+		metrics = statsd.NewClient(ioutil.Discard)
+	}
+	metrics.Prefix(args["--statsd-prefix"].(string))
 
 	broadcast := broadcast.New()
 	config := config(args)
@@ -87,9 +101,10 @@ func main() {
 	if format, ok := args["--publish"].(string); ok {
 		log.Info("publishing to %q", format)
 		pubsub, err := pubsub.New(&pubsub.Options{
-			Format: format,
-			Redis:  pool,
-			Log:    log.Log,
+			Format:  format,
+			Redis:   pool,
+			Log:     log.Log,
+			Metrics: metrics,
 		})
 
 		if err != nil {
@@ -108,10 +123,11 @@ func main() {
 
 		log.Info("listing to %q (size=%d)", format, size)
 		list, err := list.New(&list.Options{
-			Format: format,
-			Redis:  pool,
-			Log:    log.Log,
-			Size:   20,
+			Format:  format,
+			Redis:   pool,
+			Log:     log.Log,
+			Metrics: metrics,
+			Size:    20,
 		})
 
 		if err != nil {
