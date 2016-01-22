@@ -28,6 +28,7 @@ const usage = `
       [--lookupd-http-address addr...]
       [--nsqd-tcp-address addr...]
       [--redis-address addr]
+      [--max-idle n]
       [--idle-timeout t]
       [--list name] [--list-size n]
       [--publish name]
@@ -42,6 +43,7 @@ const usage = `
     --redis-address addr         redis address [default: :6379]
     --max-attempts n             nsq max message attempts [default: 5]
     --max-in-flight n            nsq messages in-flight [default: 250]
+    --max-idle n                 redis max idle connections [default: 15]
     --idle-timeout t             idle connection timeout [default: 1m]
     --list-size n                redis list size [default: 100]
     --list name                  redis list template
@@ -61,7 +63,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("error parsing arguments: %s", err)
 	}
-
+	
 	lookupds := args["--lookupd-http-address"].([]string)
 	channel := args["--channel"].(string)
 	topic := args["--topic"].(string)
@@ -82,9 +84,17 @@ func main() {
 		log.Fatalf("error parsing idle timeout: %s", err)
 	}
 
+	maxIdle, err := strconv.Atoi(args["--max-idle"].(string))
+	if err != nil {
+		log.Fatalf("error parsing max-idle: %s", err)
+	}
+	if maxIdle > 100 {
+		log.Fatalf("max-idle must be below 100")
+	}
+
 	pool := &redis.Pool{
 		IdleTimeout:  idleTimeout,
-		MaxIdle:      15,
+		MaxIdle:      maxIdle,
 		MaxActive:    100,
 		Dial:         dial(args["--redis-address"].(string)),
 		TestOnBorrow: ping,
@@ -137,7 +147,7 @@ func main() {
 		broadcast.Add(list)
 	}
 
-	consumer.AddConcurrentHandlers(broadcast, 50)
+	consumer.AddConcurrentHandlers(broadcast, maxIdle)
 	nsqds := args["--nsqd-tcp-address"].([]string)
 
 	if len(nsqds) > 0 {
