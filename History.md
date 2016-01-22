@@ -1,4 +1,10 @@
 
+v1.2.0 / 2016-01-22
+==================
+
+  * add optional metrics (see `--statsd` & `--statsd-prefix`)
+  * fixing nsqlookupd detection
+
 v1.1.0 / 2015-08-25
 ==================
 
