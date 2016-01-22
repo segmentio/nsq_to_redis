@@ -16,7 +16,7 @@ import (
 	"github.com/tj/go-gracefully"
 )
 
-var version = "1.2.0"
+var version = "1.3.0"
 
 const usage = `
   Usage:
@@ -63,7 +63,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("error parsing arguments: %s", err)
 	}
-	
+
 	lookupds := args["--lookupd-http-address"].([]string)
 	channel := args["--channel"].(string)
 	topic := args["--topic"].(string)
