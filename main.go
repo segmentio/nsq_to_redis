@@ -76,9 +76,6 @@ func main() {
 	}
 	metrics.Prefix(args["--statsd-prefix"].(string))
 
-	broadcast := broadcast.New()
-	config := config(args)
-
 	idleTimeout, err := time.ParseDuration(args["--idle-timeout"].(string))
 	if err != nil {
 		log.Fatalf("error parsing idle timeout: %s", err)
@@ -100,6 +97,13 @@ func main() {
 		TestOnBorrow: ping,
 	}
 
+	broadcast := broadcast.New(&broadcast.Options{
+		Redis:   pool,
+		Metrics: metrics,
+		Log:     log.Log,
+	})
+	config := config(args)
+
 	consumer, err := nsq.NewConsumer(topic, channel, config)
 	if err != nil {
 		log.Fatalf("error starting consumer: %s", err)
@@ -112,7 +116,6 @@ func main() {
 		log.Info("publishing to %q", format)
 		pubsub, err := pubsub.New(&pubsub.Options{
 			Format:  format,
-			Redis:   pool,
 			Log:     log.Log,
 			Metrics: metrics,
 		})
@@ -134,7 +137,6 @@ func main() {
 		log.Info("listing to %q (size=%d)", format, size)
 		list, err := list.New(&list.Options{
 			Format:  format,
-			Redis:   pool,
 			Log:     log.Log,
 			Metrics: metrics,
 			Size:    20,
