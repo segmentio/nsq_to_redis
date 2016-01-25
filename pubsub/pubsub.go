@@ -5,17 +5,16 @@ import (
 	"time"
 
 	"github.com/bitly/go-nsq"
-	"github.com/garyburd/redigo/redis"
 	"github.com/segmentio/go-interpolate"
 	"github.com/segmentio/go-log"
 	"github.com/segmentio/go-stats"
+	"github.com/segmentio/nsq_to_redis/broadcast"
 	"github.com/statsd/client"
 )
 
 // Options for PubSub.
 type Options struct {
 	Format  string         // Redis publish channel format
-	Redis   *redis.Pool    // Redis client
 	Log     *log.Logger    // Logger
 	Metrics *statsd.Client // Metrics
 }
@@ -45,10 +44,10 @@ func New(options *Options) (*PubSub, error) {
 	return p, nil
 }
 
-// HandleMessage parses json messages received from NSQ,
+// Handle parses json messages received from NSQ,
 // applies them against the publish channel template to
 // produce the channel name, and then publishes to Redis.
-func (p *PubSub) HandleMessage(msg *nsq.Message) error {
+func (p *PubSub) Handle(c *broadcast.Conn, msg *nsq.Message) error {
 	var v interface{}
 	start := time.Now()
 
@@ -67,11 +66,7 @@ func (p *PubSub) HandleMessage(msg *nsq.Message) error {
 	p.Log.Info("publish %s to %s", msg.ID, channel)
 	p.Log.Debug("contents %s %s", msg.ID, msg.Body)
 
-	client := p.Redis.Get()
-	defer client.Close()
-
-	_, err = client.Do("PUBLISH", channel, msg.Body)
-
+	err = c.Send("PUBLISH", channel, msg.Body)
 	if err != nil {
 		p.Log.Error("publish: %s", err)
 		return err
