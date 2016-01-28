@@ -1,10 +1,8 @@
 package list
 
 import (
-	"encoding/json"
 	"time"
 
-	"github.com/bitly/go-nsq"
 	"github.com/segmentio/go-interpolate"
 	"github.com/segmentio/go-log"
 	"github.com/segmentio/go-stats"
@@ -48,17 +46,11 @@ func New(options *Options) (*List, error) {
 // HandleMessage parses json messages received from NSQ,
 // applies them against the key template to produce a
 // key name, and writes to the list.
-func (l *List) Handle(c *broadcast.Conn, msg *nsq.Message) error {
+func (l *List) Handle(c *broadcast.Conn, msg *broadcast.Message) error {
 	var v interface{}
 	start := time.Now()
 
-	err := json.Unmarshal(msg.Body, &v)
-	if err != nil {
-		l.Log.Error("parsing json: %s", err)
-		return nil
-	}
-
-	key, err := l.template.Eval(v)
+	key, err := l.template.Eval(msg.JSON)
 	if err != nil {
 		l.Log.Error("evaluating template: %s", err)
 		return nil
