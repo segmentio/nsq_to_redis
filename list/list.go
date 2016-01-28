@@ -47,7 +47,6 @@ func New(options *Options) (*List, error) {
 // applies them against the key template to produce a
 // key name, and writes to the list.
 func (l *List) Handle(c *broadcast.Conn, msg *broadcast.Message) error {
-	var v interface{}
 	start := time.Now()
 
 	key, err := l.template.Eval(msg.JSON)
