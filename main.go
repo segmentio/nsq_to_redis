@@ -11,6 +11,7 @@ import (
 	"github.com/segmentio/nsq_to_redis/broadcast"
 	"github.com/segmentio/nsq_to_redis/list"
 	"github.com/segmentio/nsq_to_redis/pubsub"
+	"github.com/segmentio/nsq_to_redis/ratelimit"
 	"github.com/statsd/client"
 	"github.com/tj/docopt"
 	"github.com/tj/go-gracefully"
@@ -33,6 +34,9 @@ const usage = `
       [--list name] [--list-size n]
       [--publish name]
       [--level name]
+      [--ratelimit-key key]
+      [--ratelimit-max-rate n]
+      [--ratelimit-max-keys n]
 
     nsq_to_redis -h | --help
     nsq_to_redis --version
@@ -53,6 +57,9 @@ const usage = `
     --level name                 log level [default: info]
     --statsd addr                tcp address [default: ]
     --statsd-prefix prefix       prefix for statsd [default: nsq_to_redis.]
+    --ratelimit-key key          a key to use for ratelimits, for example "api_key" [default: ]
+    --ratelimit-max-rate n       max writes for each key per second, N <= 0 will not limit [default: 0]
+    --ratelimit-max-keys n       max keys to keep in memory (lru cache) [default: 500]
     -h, --help                   output help information
     -v, --version                output version
 
@@ -98,9 +105,11 @@ func main() {
 	}
 
 	broadcast := broadcast.New(&broadcast.Options{
-		Redis:   pool,
-		Metrics: metrics,
-		Log:     log.Log,
+		Redis:        pool,
+		Metrics:      metrics,
+		Log:          log.Log,
+		Ratelimiter:  ratelimiter(args),
+		RatelimitKey: args["--ratelimit-key"].(string),
 	})
 	config := config(args)
 
@@ -186,6 +195,26 @@ func config(args map[string]interface{}) *nsq.Config {
 	config.MaxInFlight = n
 
 	return config
+}
+
+// Parse Ratelimiter configuration and return
+// a new ratelimiter or nil.
+func ratelimiter(args map[string]interface{}) *ratelimit.Ratelimiter {
+	rate, err := strconv.Atoi(args["--ratelimit-max-rate"].(string))
+	if err != nil {
+		log.Fatalf("error parsing --ratelimit-max-rate: %s", err)
+	}
+
+	if rate <= 0 {
+		return nil
+	}
+
+	keys, err := strconv.Atoi(args["--ratelimit-max-keys"].(string))
+	if err != nil {
+		log.Fatalf("error parsing --ratelimit-max-keys: %s", err)
+	}
+
+	return ratelimit.New(rate, keys)
 }
 
 // Dialer.

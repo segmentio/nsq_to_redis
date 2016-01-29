@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/bitly/go-nsq"
 	"github.com/segmentio/go-interpolate"
 	"github.com/segmentio/go-log"
 	"github.com/segmentio/go-stats"
@@ -47,7 +46,7 @@ func New(options *Options) (*PubSub, error) {
 // Handle parses json messages received from NSQ,
 // applies them against the publish channel template to
 // produce the channel name, and then publishes to Redis.
-func (p *PubSub) Handle(c *broadcast.Conn, msg *nsq.Message) error {
+func (p *PubSub) Handle(c *broadcast.Conn, msg *broadcast.Message) error {
 	var v interface{}
 	start := time.Now()
 
