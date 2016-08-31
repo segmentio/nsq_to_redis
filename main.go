@@ -73,6 +73,7 @@ func main() {
 		log.Fatalf("error parsing arguments: %s", err)
 	}
 
+	log.SetLevelString(args["--level"].(string))
 	lookupds := args["--lookupd-http-address"].([]string)
 	channel := args["--channel"].(string)
 	topic := args["--topic"].(string)
@@ -85,6 +86,8 @@ func main() {
 			sampleRate = v
 		}
 	}
+
+	log.Debug("sample rate = %g", sampleRate)
 
 	var metrics *statsd.Client
 	if addr := args["--statsd"].(string); addr != "" {
@@ -129,8 +132,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("error starting consumer: %s", err)
 	}
-
-	log.SetLevelString(args["--level"].(string))
 
 	// Pub/Sub support.
 	if format, ok := args["--publish"].(string); ok {
