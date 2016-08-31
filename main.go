@@ -5,16 +5,16 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bitly/go-nsq"
+	nsq "github.com/bitly/go-nsq"
 	"github.com/garyburd/redigo/redis"
 	"github.com/segmentio/go-log"
 	"github.com/segmentio/nsq_to_redis/broadcast"
 	"github.com/segmentio/nsq_to_redis/list"
 	"github.com/segmentio/nsq_to_redis/pubsub"
 	"github.com/segmentio/nsq_to_redis/ratelimit"
-	"github.com/statsd/client"
+	statsd "github.com/statsd/client"
 	"github.com/tj/docopt"
-	"github.com/tj/go-gracefully"
+	gracefully "github.com/tj/go-gracefully"
 )
 
 var version = "1.5.0"
@@ -37,6 +37,7 @@ const usage = `
       [--ratelimit-key key]
       [--ratelimit-max-rate n]
       [--ratelimit-max-keys n]
+      [--sample-rate n]
 
     nsq_to_redis -h | --help
     nsq_to_redis --version
@@ -60,6 +61,7 @@ const usage = `
     --ratelimit-key key          a key to use for ratelimits, for example "api_key" [default: ]
     --ratelimit-max-rate n       max writes for each key per second, N <= 0 will not limit [default: 0]
     --ratelimit-max-keys n       max keys to keep in memory (lru cache) [default: 500]
+    --sample-rate f              sample rate for the outgoing events (0.0 to 1.0) [default: 1.0]
     -h, --help                   output help information
     -v, --version                output version
 
@@ -74,6 +76,15 @@ func main() {
 	lookupds := args["--lookupd-http-address"].([]string)
 	channel := args["--channel"].(string)
 	topic := args["--topic"].(string)
+	sampleRate := 1.0
+
+	if sr, ok := args["--sample-rate"].(string); ok {
+		if v, e := strconv.ParseFloat(sr, 64); e != nil || v < 0 || v > 1 {
+			log.Warning("bad sample rate '%s', default to %g", sr, sampleRate)
+		} else {
+			sampleRate = v
+		}
+	}
 
 	var metrics *statsd.Client
 	if addr := args["--statsd"].(string); addr != "" {
@@ -107,6 +118,7 @@ func main() {
 	broadcast := broadcast.New(&broadcast.Options{
 		Redis:        pool,
 		Metrics:      metrics,
+		SampleRate:   sampleRate,
 		Log:          log.Log,
 		Ratelimiter:  ratelimiter(args),
 		RatelimitKey: args["--ratelimit-key"].(string),

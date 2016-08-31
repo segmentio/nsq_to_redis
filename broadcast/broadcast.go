@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"encoding/json"
+	"math/rand"
 	"time"
 
 	"github.com/bitly/go-nsq"
@@ -30,6 +31,7 @@ type Options struct {
 	Metrics      *statsd.Client
 	Ratelimiter  *ratelimit.Ratelimiter
 	RatelimitKey string
+	SampleRate   float64
 	Log          *log.Logger
 }
 
@@ -57,6 +59,10 @@ func (b *Broadcast) Add(h Handler) {
 
 // HandleMessage parses distributes messages to each delegate.
 func (b *Broadcast) HandleMessage(msg *nsq.Message) error {
+	if b.Options.SampleRate >= rand.Float64() {
+		return nil // didn't pass sampling
+	}
+
 	start := time.Now()
 
 	// parse
