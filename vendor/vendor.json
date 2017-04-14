@@ -75,12 +75,6 @@
 			"revisionTime": "2015-04-16T23:44:20Z"
 		},
 		{
-			"checksumSHA1": "RwY/Ez0fqxQmi1aGWvf7FRd8Fiw=",
-			"path": "github.com/segmentio/go-interpolate",
-			"revision": "07dcdbee8fe2b0aa39aeceab179c81b1a3410357",
-			"revisionTime": "2015-02-18T22:14:57Z"
-		},
-		{
 			"checksumSHA1": "10xF3ucjbvs5iUifJY8hgg6CSpw=",
 			"path": "github.com/segmentio/go-log",
 			"revision": "9c7ea0f744953ff5220087609a8525790dc01d8b",
@@ -97,6 +91,18 @@
 			"path": "github.com/statsd/client",
 			"revision": "4d5b8b0f41649f58d6e9e443857bccafe927f3cb",
 			"revisionTime": "2014-10-07T22:42:35Z"
+		},
+		{
+			"checksumSHA1": "Ntxt39Uh4Bwm20WFS93Xkzzi12E=",
+			"path": "github.com/tidwall/gjson",
+			"revision": "6e0babc7e842e3080bdc53d94084167e2ac8db65",
+			"revisionTime": "2017-04-14T18:13:32Z"
+		},
+		{
+			"checksumSHA1": "qmePMXEDYGwkAfT9QvtMC58JN/E=",
+			"path": "github.com/tidwall/match",
+			"revision": "173748da739a410c5b0b813b956f89ff94730b4c",
+			"revisionTime": "2016-08-30T17:39:30Z"
 		},
 		{
 			"checksumSHA1": "LfLTyk4ox5wH0YL4sD5rcbrVWBw=",

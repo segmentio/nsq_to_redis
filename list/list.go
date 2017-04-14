@@ -3,10 +3,10 @@ package list
 import (
 	"time"
 
-	"github.com/segmentio/go-interpolate"
 	"github.com/segmentio/go-log"
 	"github.com/segmentio/go-stats"
 	"github.com/segmentio/nsq_to_redis/broadcast"
+	"github.com/segmentio/nsq_to_redis/template"
 	"github.com/statsd/client"
 )
 
@@ -20,7 +20,7 @@ type Options struct {
 
 // List writes messages to capped lists.
 type List struct {
-	template *interpolate.Template
+	template *template.T
 	stats    *stats.Stats
 	*Options
 }
@@ -32,7 +32,7 @@ func New(options *Options) (*List, error) {
 		stats:   stats.New(),
 	}
 
-	tmpl, err := interpolate.New(r.Format)
+	tmpl, err := template.New(r.Format)
 	if err != nil {
 		return nil, err
 	}
@@ -43,13 +43,13 @@ func New(options *Options) (*List, error) {
 	return r, nil
 }
 
-// HandleMessage parses json messages received from NSQ,
+// HandleMessage expects parsed json messages from NSQ,
 // applies them against the key template to produce a
 // key name, and writes to the list.
 func (l *List) Handle(c *broadcast.Conn, msg *broadcast.Message) error {
 	start := time.Now()
 
-	key, err := l.template.Eval(msg.JSON)
+	key, err := l.template.Eval(string(msg.Body))
 	if err != nil {
 		l.Log.Error("evaluating template: %s", err)
 		return nil
