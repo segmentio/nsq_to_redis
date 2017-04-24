@@ -17,7 +17,7 @@ import (
 	"github.com/tj/go-gracefully"
 )
 
-var version = "1.5.0"
+var version = "2.0.0"
 
 const usage = `
   Usage:

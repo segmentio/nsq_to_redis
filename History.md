@@ -1,4 +1,12 @@
 
+v2.0.0 / 2017-04-24
+===================
+
+  * Speed up JSON parsing by using `json.RawMessage` instead of `map[string]interface{}`
+  * Speed up templating by writing custom templating on top of [`gjson`](https://github.com/tidwall/gjson) instead of using [`go-interpolate`](https://github.com/segmentio/go-interpolate).
+  * Internal: Migrate to govendor.
+
+
 v1.5.0 / 2016-01-29
 ==================
 
