@@ -10,6 +10,7 @@ import (
 	"github.com/segmentio/go-stats"
 	"github.com/segmentio/nsq_to_redis/ratelimit"
 	"github.com/statsd/client"
+	"github.com/tidwall/gjson"
 )
 
 // Handler is a message handler.
@@ -20,8 +21,7 @@ type Handler interface {
 // Message is a parsed message.
 type Message struct {
 	ID   nsq.MessageID
-	JSON map[string]interface{}
-	Body []byte
+	Body json.RawMessage
 }
 
 // Options for broadcast.
@@ -62,12 +62,13 @@ func (b *Broadcast) HandleMessage(msg *nsq.Message) error {
 	// parse
 	m := new(Message)
 	m.ID = msg.ID
-	m.Body = msg.Body
-	err := json.Unmarshal(m.Body, &m.JSON)
+	var body json.RawMessage
+	err := json.Unmarshal(msg.Body, &body)
 	if err != nil {
 		b.Log.Error("error parsing json: %s", err)
 		return nil
 	}
+	m.Body = body
 
 	// ratelimit
 	if b.rateExceeded(m) {
@@ -104,9 +105,8 @@ func (b *Broadcast) HandleMessage(msg *nsq.Message) error {
 // if ratelimit was not configured or exceeded.
 func (b *Broadcast) rateExceeded(msg *Message) bool {
 	if b.Ratelimiter != nil {
-		if v, ok := msg.JSON[b.RatelimitKey].(string); ok {
-			return b.Ratelimiter.Exceeded(v)
-		}
+		k := gjson.Get(string(msg.Body), b.RatelimitKey).String()
+		return b.Ratelimiter.Exceeded(k)
 	}
 
 	return false

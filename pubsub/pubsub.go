@@ -1,13 +1,12 @@
 package pubsub
 
 import (
-	"encoding/json"
 	"time"
 
-	"github.com/segmentio/go-interpolate"
 	"github.com/segmentio/go-log"
 	"github.com/segmentio/go-stats"
 	"github.com/segmentio/nsq_to_redis/broadcast"
+	"github.com/segmentio/nsq_to_redis/template"
 	"github.com/statsd/client"
 )
 
@@ -20,7 +19,7 @@ type Options struct {
 
 // PubSub publishes messages to a formatted channel.
 type PubSub struct {
-	template *interpolate.Template
+	template *template.T
 	stats    *stats.Stats
 	*Options
 }
@@ -32,7 +31,7 @@ func New(options *Options) (*PubSub, error) {
 		stats:   stats.New(),
 	}
 
-	tmpl, err := interpolate.New(p.Format)
+	tmpl, err := template.New(p.Format)
 	if err != nil {
 		return nil, err
 	}
@@ -43,20 +42,13 @@ func New(options *Options) (*PubSub, error) {
 	return p, nil
 }
 
-// Handle parses json messages received from NSQ,
+// HandleMessage expects parsed json messages from NSQ,
 // applies them against the publish channel template to
 // produce the channel name, and then publishes to Redis.
 func (p *PubSub) Handle(c *broadcast.Conn, msg *broadcast.Message) error {
-	var v interface{}
 	start := time.Now()
 
-	err := json.Unmarshal(msg.Body, &v)
-	if err != nil {
-		p.Log.Error("parsing json: %s", err)
-		return nil
-	}
-
-	channel, err := p.template.Eval(v)
+	channel, err := p.template.Eval(string(msg.Body))
 	if err != nil {
 		p.Log.Error("evaluating template: %s", err)
 		return nil
