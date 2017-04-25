@@ -33,6 +33,42 @@
 			"revisionTime": "2016-05-25T16:57:06Z"
 		},
 		{
+			"checksumSHA1": "NuLhBJ8GppcXqPK4D5sCGn0IcX8=",
+			"path": "github.com/go-redis/redis",
+			"revision": "dd76391eb986c2ea0aba41e9edde61ff7e0d4b28",
+			"revisionTime": "2017-04-05T12:32:37Z"
+		},
+		{
+			"checksumSHA1": "XUqPA2V7/z8JyWnCPclCztcXO7M=",
+			"path": "github.com/go-redis/redis/internal",
+			"revision": "dd76391eb986c2ea0aba41e9edde61ff7e0d4b28",
+			"revisionTime": "2017-04-05T12:32:37Z"
+		},
+		{
+			"checksumSHA1": "GQZsUVg/+6UpQAYpc4luMvMutSI=",
+			"path": "github.com/go-redis/redis/internal/consistenthash",
+			"revision": "dd76391eb986c2ea0aba41e9edde61ff7e0d4b28",
+			"revisionTime": "2017-04-05T12:32:37Z"
+		},
+		{
+			"checksumSHA1": "VP0K8vvf716n6xuzAZTvpz+wTwc=",
+			"path": "github.com/go-redis/redis/internal/hashtag",
+			"revision": "dd76391eb986c2ea0aba41e9edde61ff7e0d4b28",
+			"revisionTime": "2017-04-05T12:32:37Z"
+		},
+		{
+			"checksumSHA1": "wz1pQuujYv3lDTXq8PKQIKRYl54=",
+			"path": "github.com/go-redis/redis/internal/pool",
+			"revision": "dd76391eb986c2ea0aba41e9edde61ff7e0d4b28",
+			"revisionTime": "2017-04-05T12:32:37Z"
+		},
+		{
+			"checksumSHA1": "lEtS56d84Jw7raXpyu/XkIpTLLU=",
+			"path": "github.com/go-redis/redis/internal/proto",
+			"revision": "dd76391eb986c2ea0aba41e9edde61ff7e0d4b28",
+			"revisionTime": "2017-04-05T12:32:37Z"
+		},
+		{
 			"checksumSHA1": "d9PxF1XQGLMJZRct2R8qVM/eYlE=",
 			"path": "github.com/hashicorp/golang-lru",
 			"revision": "0a025b7e63adc15a622f29b0b2c4c3848243bbf6",
@@ -75,6 +111,12 @@
 			"revisionTime": "2015-04-16T23:44:20Z"
 		},
 		{
+			"checksumSHA1": "dkMvDo5Ni3X6LsIT3vnPYw21LDw=",
+			"path": "github.com/segmentio/go-interpolate",
+			"revision": "ed5d043b681f7100b24ed5d6337d22d3221fefe7",
+			"revisionTime": "2017-04-26T20:41:03Z"
+		},
+		{
 			"checksumSHA1": "10xF3ucjbvs5iUifJY8hgg6CSpw=",
 			"path": "github.com/segmentio/go-log",
 			"revision": "9c7ea0f744953ff5220087609a8525790dc01d8b",
@@ -91,18 +133,6 @@
 			"path": "github.com/statsd/client",
 			"revision": "4d5b8b0f41649f58d6e9e443857bccafe927f3cb",
 			"revisionTime": "2014-10-07T22:42:35Z"
-		},
-		{
-			"checksumSHA1": "Ntxt39Uh4Bwm20WFS93Xkzzi12E=",
-			"path": "github.com/tidwall/gjson",
-			"revision": "6e0babc7e842e3080bdc53d94084167e2ac8db65",
-			"revisionTime": "2017-04-14T18:13:32Z"
-		},
-		{
-			"checksumSHA1": "qmePMXEDYGwkAfT9QvtMC58JN/E=",
-			"path": "github.com/tidwall/match",
-			"revision": "173748da739a410c5b0b813b956f89ff94730b4c",
-			"revisionTime": "2016-08-30T17:39:30Z"
 		},
 		{
 			"checksumSHA1": "LfLTyk4ox5wH0YL4sD5rcbrVWBw=",
