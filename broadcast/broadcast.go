@@ -80,7 +80,7 @@ func (b *Broadcast) HandleMessage(msg *nsq.Message) error {
 
 	db := b.Redis.Get()
 	defer db.Close()
-	conn := newConn(db)
+	conn := NewConn(db)
 
 	for _, h := range b.handlers {
 		err := h.Handle(conn, m)

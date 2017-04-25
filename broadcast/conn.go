@@ -9,8 +9,8 @@ type Conn struct {
 	pending int
 }
 
-// newConn returns a new Conn.
-func newConn(c redis.Conn) *Conn {
+// NewConn returns a new Conn.
+func NewConn(c redis.Conn) *Conn {
 	return &Conn{conn: c}
 }
 
