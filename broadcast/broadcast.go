@@ -10,23 +10,27 @@ import (
 	"github.com/segmentio/go-stats"
 	"github.com/segmentio/nsq_to_redis/ratelimit"
 	"github.com/statsd/client"
-	"github.com/tidwall/gjson"
 )
+
+type RedisPool interface {
+	Get() redis.Conn
+}
 
 // Handler is a message handler.
 type Handler interface {
-	Handle(*Conn, *Message) error
+	Handle(Conn, *Message) error
 }
 
 // Message is a parsed message.
 type Message struct {
 	ID   nsq.MessageID
-	Body json.RawMessage
+	Body []byte
+	JSON map[string]interface{}
 }
 
 // Options for broadcast.
 type Options struct {
-	Redis        *redis.Pool
+	Redis        RedisPool
 	Metrics      *statsd.Client
 	Ratelimiter  *ratelimit.Ratelimiter
 	RatelimitKey string
@@ -62,13 +66,12 @@ func (b *Broadcast) HandleMessage(msg *nsq.Message) error {
 	// parse
 	m := new(Message)
 	m.ID = msg.ID
-	var body json.RawMessage
-	err := json.Unmarshal(msg.Body, &body)
+	m.Body = msg.Body
+	err := json.Unmarshal(m.Body, &m.JSON)
 	if err != nil {
 		b.Log.Error("error parsing json: %s", err)
 		return nil
 	}
-	m.Body = body
 
 	// ratelimit
 	if b.rateExceeded(m) {
@@ -105,9 +108,29 @@ func (b *Broadcast) HandleMessage(msg *nsq.Message) error {
 // if ratelimit was not configured or exceeded.
 func (b *Broadcast) rateExceeded(msg *Message) bool {
 	if b.Ratelimiter != nil {
-		k := gjson.Get(string(msg.Body), b.RatelimitKey).String()
-		return b.Ratelimiter.Exceeded(k)
+		if v, ok := msg.JSON[b.RatelimitKey].(string); ok {
+			return b.Ratelimiter.Exceeded(v)
+		}
 	}
 
 	return false
+}
+
+// NewMessage returns a Message or an error if unable to do so.
+// Used primarily by tests.
+func NewMessage(id, contents string) (*Message, error) {
+	var body map[string]interface{}
+	err := json.Unmarshal([]byte(contents), &body)
+	if err != nil {
+		return nil, err
+	}
+
+	nsqId := [nsq.MsgIDLength]byte{}
+	copy(nsqId[:], id[:nsq.MsgIDLength])
+
+	return &Message{
+		ID:   nsqId,
+		Body: []byte(contents),
+		JSON: body,
+	}, nil
 }
