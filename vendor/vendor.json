@@ -135,6 +135,18 @@
 			"revisionTime": "2014-10-07T22:42:35Z"
 		},
 		{
+			"checksumSHA1": "Ntxt39Uh4Bwm20WFS93Xkzzi12E=",
+			"path": "github.com/tidwall/gjson",
+			"revision": "6e0babc7e842e3080bdc53d94084167e2ac8db65",
+			"revisionTime": "2017-04-14T18:13:32Z"
+		},
+		{
+			"checksumSHA1": "qmePMXEDYGwkAfT9QvtMC58JN/E=",
+			"path": "github.com/tidwall/match",
+			"revision": "173748da739a410c5b0b813b956f89ff94730b4c",
+			"revisionTime": "2016-08-30T17:39:30Z"
+		},
+		{
 			"checksumSHA1": "LfLTyk4ox5wH0YL4sD5rcbrVWBw=",
 			"path": "github.com/tj/docopt",
 			"revision": "c8470e45692f168e8b380c5d625327e756d7d0a9",

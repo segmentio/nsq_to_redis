@@ -3,10 +3,10 @@ package pubsub
 import (
 	"time"
 
-	interpolate "github.com/segmentio/go-interpolate"
 	"github.com/segmentio/go-log"
 	"github.com/segmentio/go-stats"
 	"github.com/segmentio/nsq_to_redis/broadcast"
+	"github.com/segmentio/nsq_to_redis/template"
 	"github.com/statsd/client"
 )
 
@@ -19,7 +19,7 @@ type Options struct {
 
 // PubSub publishes messages to a formatted channel.
 type PubSub struct {
-	template *interpolate.Template
+	template *template.T
 	stats    *stats.Stats
 	*Options
 }
@@ -31,7 +31,7 @@ func New(options *Options) (*PubSub, error) {
 		stats:   stats.New(),
 	}
 
-	tmpl, err := interpolate.New(p.Format)
+	tmpl, err := template.New(p.Format)
 	if err != nil {
 		return nil, err
 	}
@@ -48,16 +48,16 @@ func New(options *Options) (*PubSub, error) {
 func (p *PubSub) Handle(c broadcast.Conn, msg *broadcast.Message) error {
 	start := time.Now()
 
-	channel, err := p.template.Eval(msg.JSON)
+	channel, err := p.template.Eval(string(msg.JSON))
 	if err != nil {
 		p.Log.Error("evaluating template: %s", err)
 		return nil
 	}
 
 	p.Log.Info("publish %s to %s", msg.ID, channel)
-	p.Log.Debug("contents %s %s", msg.ID, msg.Body)
+	p.Log.Debug("contents %s %s", msg.ID, msg.JSON)
 
-	err = c.Send("PUBLISH", channel, []byte(msg.Body))
+	err = c.Send("PUBLISH", channel, []byte(msg.JSON))
 	if err != nil {
 		p.Log.Error("publish: %s", err)
 		return err
