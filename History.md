@@ -1,4 +1,9 @@
 
+v2.0.1 / 2017-04-26
+===================
+
+  * Fix regression introduced in `v2.0.0` where messages were incorrectly published to Redis. It is not recommended you use v2.0.0!
+
 v2.0.0 / 2017-04-24
 ===================
 
