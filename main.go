@@ -148,7 +148,7 @@ func main() {
 			Format:  format,
 			Log:     log.Log,
 			Metrics: metrics,
-			Size:    20,
+			Size:    int64(size),
 		})
 
 		if err != nil {
