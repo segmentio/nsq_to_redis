@@ -29,6 +29,7 @@ const usage = `
       [--lookupd-http-address addr...]
       [--nsqd-tcp-address addr...]
       [--redis-address addr]
+      [--flush-interval t]
       [--max-idle n]
       [--idle-timeout t]
       [--list name] [--list-size n]
@@ -47,6 +48,7 @@ const usage = `
     --redis-address addr         redis address [default: :6379]
     --max-attempts n             nsq max message attempts [default: 5]
     --max-in-flight n            nsq messages in-flight [default: 250]
+    --flush-interval t           time to buffer redis commands before flushing [default: 0s]
     --max-idle n                 redis max idle connections [default: 15]
     --idle-timeout t             idle connection timeout [default: 1m]
     --list-size n                redis list size [default: 100]
@@ -88,6 +90,14 @@ func main() {
 		log.Fatalf("error parsing idle timeout: %s", err)
 	}
 
+	flushInterval, err := time.ParseDuration(args["--flush-interval"].(string))
+	if err != nil {
+		log.Fatalf("error parsing flush-interval: %s", err)
+	}
+	if flushInterval < 0 {
+		log.Fatalf("flush-interval must not be a negative value")
+	}
+
 	maxIdle, err := strconv.Atoi(args["--max-idle"].(string))
 	if err != nil {
 		log.Fatalf("error parsing max-idle: %s", err)
@@ -105,11 +115,12 @@ func main() {
 	}
 
 	broadcast := broadcast.New(&broadcast.Options{
-		Redis:        pool,
-		Metrics:      metrics,
-		Log:          log.Log,
-		Ratelimiter:  ratelimiter(args),
-		RatelimitKey: args["--ratelimit-key"].(string),
+		Redis:         pool,
+		Metrics:       metrics,
+		Log:           log.Log,
+		Ratelimiter:   ratelimiter(args),
+		RatelimitKey:  args["--ratelimit-key"].(string),
+		FlushInterval: flushInterval,
 	})
 	config := config(args)
 
@@ -175,6 +186,8 @@ func main() {
 	log.Info("stopping")
 	consumer.Stop()
 	<-consumer.StopChan
+	broadcast.Stop()
+	<-broadcast.Done
 	log.Info("bye :)")
 }
 

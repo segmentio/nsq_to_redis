@@ -1,34 +1,40 @@
 package mocks
 
-import "github.com/garyburd/redigo/redis"
+import (
+	"sync/atomic"
+
+	"github.com/garyburd/redigo/redis"
+)
 
 func NewNoOpRedisConn() redis.Conn {
-	return &noOpRedisConn{}
+	return &NoOpRedisConn{}
 }
 
-type noOpRedisConn struct{}
+type NoOpRedisConn struct {
+	Flushes uint64
+}
 
-func (c *noOpRedisConn) Close() error {
+func (c *NoOpRedisConn) Close() error {
 	return nil
 }
 
-func (c *noOpRedisConn) Err() error {
+func (c *NoOpRedisConn) Err() error {
 	return nil
 }
 
-func (c *noOpRedisConn) Do(commandName string, args ...interface{}) (reply interface{}, err error) {
+func (c *NoOpRedisConn) Do(commandName string, args ...interface{}) (reply interface{}, err error) {
 	return nil, nil
 }
 
-func (c *noOpRedisConn) Send(commandName string, args ...interface{}) error {
+func (c *NoOpRedisConn) Send(commandName string, args ...interface{}) error {
 	return nil
 }
 
-func (c *noOpRedisConn) Flush() error {
+func (c *NoOpRedisConn) Flush() error {
+	atomic.AddUint64(&c.Flushes, 1)
 	return nil
-
 }
 
-func (c *noOpRedisConn) Receive() (reply interface{}, err error) {
+func (c *NoOpRedisConn) Receive() (reply interface{}, err error) {
 	return nil, nil
 }

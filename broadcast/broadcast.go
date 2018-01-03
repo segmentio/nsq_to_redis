@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/bitly/go-nsq"
@@ -30,28 +31,47 @@ type Message struct {
 
 // Options for broadcast.
 type Options struct {
-	Redis        RedisPool
-	Metrics      *statsd.Client
-	Ratelimiter  *ratelimit.Ratelimiter
-	RatelimitKey string
-	Log          *log.Logger
+	Redis         RedisPool
+	Metrics       *statsd.Client
+	Ratelimiter   *ratelimit.Ratelimiter
+	RatelimitKey  string
+	Log           *log.Logger
+	FlushInterval time.Duration
 }
 
 // Broadcast consumer distributes messages to N handlers.
 type Broadcast struct {
+	Done chan struct{}
+	*Options
+
 	handlers []Handler
 	stats    *stats.Stats
-	*Options
+
+	// Single connection, channel and mutex are used when applying a flush interval
+	conn  Conn
+	mutex sync.Mutex
 }
 
 // New broadcast consumer.
 func New(o *Options) *Broadcast {
 	stats := stats.New()
 	go stats.TickEvery(10 * time.Second)
-	return &Broadcast{
+
+	broadcast := Broadcast{
 		stats:   stats,
 		Options: o,
+		Done:    make(chan struct{}, 1),
 	}
+
+	if o.FlushInterval < 0 {
+		panic("FlushInterval must not be a negative duration")
+	} else if o.FlushInterval > 0 {
+		conn := NewConn(o.Redis.Get())
+		broadcast.conn = conn
+		broadcast.flushOnInterval(conn)
+	}
+
+	return &broadcast
 }
 
 // Add handler.
@@ -80,9 +100,8 @@ func (b *Broadcast) HandleMessage(msg *nsq.Message) error {
 		return nil
 	}
 
-	db := b.Redis.Get()
-	defer db.Close()
-	conn := NewConn(db)
+	conn, done := b.getConn()
+	defer done()
 
 	for _, h := range b.handlers {
 		err := h.Handle(conn, m)
@@ -91,14 +110,63 @@ func (b *Broadcast) HandleMessage(msg *nsq.Message) error {
 		}
 	}
 
-	err = conn.Flush()
+	if b.FlushInterval == 0 {
+		if err := b.flush(conn); err != nil {
+			return err
+		}
+	}
+
+	b.Metrics.Duration("timers.broadcast", time.Since(start))
+	return nil
+}
+
+// Flushes all messages, then sends on the Done channel.
+func (b *Broadcast) Stop() {
+	if b.FlushInterval > 0 {
+		conn, done := b.getConn()
+		defer done()
+		b.flush(conn)
+	}
+
+	b.Done <- struct{}{}
+}
+
+func (b *Broadcast) getConn() (conn Conn, done func()) {
+	if b.FlushInterval == 0 {
+		db := b.Redis.Get()
+		conn = NewConn(db)
+		done = func() {
+			db.Close()
+		}
+	} else {
+		b.mutex.Lock()
+		conn = b.conn
+		done = func() {
+			b.mutex.Unlock()
+		}
+	}
+
+	return conn, done
+}
+
+func (b *Broadcast) flushOnInterval(conn Conn) {
+	go func() {
+		for range time.Tick(b.FlushInterval) {
+			b.mutex.Lock()
+			b.flush(conn)
+			b.mutex.Unlock()
+		}
+	}()
+}
+
+func (b *Broadcast) flush(conn Conn) error {
+	err := conn.Flush()
 	if err != nil {
 		b.Metrics.Incr("errors.flush")
 		b.Log.Error("flush: %s", err)
 		return err
 	}
 
-	b.Metrics.Duration("timers.broadcast", time.Since(start))
 	return nil
 }
 

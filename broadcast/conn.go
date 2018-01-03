@@ -41,5 +41,7 @@ func (c *conn) Flush() error {
 		}
 	}
 
+	c.pending = 0
+
 	return nil
 }
