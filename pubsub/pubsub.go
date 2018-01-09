@@ -7,7 +7,7 @@ import (
 	"github.com/segmentio/go-stats"
 	"github.com/segmentio/nsq_to_redis/broadcast"
 	"github.com/segmentio/nsq_to_redis/template"
-	"github.com/statsd/client"
+	"github.com/segmentio/statsdclient"
 )
 
 // Options for PubSub.

@@ -12,7 +12,7 @@ import (
 	"github.com/segmentio/nsq_to_redis/list"
 	"github.com/segmentio/nsq_to_redis/pubsub"
 	"github.com/segmentio/nsq_to_redis/ratelimit"
-	"github.com/statsd/client"
+	"github.com/segmentio/statsdclient"
 	"github.com/tj/docopt"
 	"github.com/tj/go-gracefully"
 )

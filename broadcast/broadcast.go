@@ -9,7 +9,7 @@ import (
 	"github.com/segmentio/go-log"
 	"github.com/segmentio/go-stats"
 	"github.com/segmentio/nsq_to_redis/ratelimit"
-	"github.com/statsd/client"
+	"github.com/segmentio/statsdclient"
 	"github.com/tidwall/gjson"
 )
 
