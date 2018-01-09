@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"io/ioutil"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -82,6 +83,73 @@ func TestBroadcast(t *testing.T) {
 
 	h1.AssertExpectations(t)
 	h2.AssertExpectations(t)
+}
+
+func TestBroadcastInvalidFlushInterval(t *testing.T) {
+	assert.Panic(t, "FlushInterval must not be a negative duration", func() {
+		New(&Options{FlushInterval: -1 * time.Hour})
+	})
+}
+
+func TestBroadcastWithoutFlushInterval(t *testing.T) {
+	pool := getMockPool()
+	broadcast := New(&Options{
+		Redis:   pool,
+		Metrics: statsd.NewClient(ioutil.Discard),
+		Log:     log.Log,
+	})
+
+	sendMessages(broadcast)
+
+	mockConn := pool.Get().(*mocks.NoOpRedisConn)
+	assert.Equal(t, 2, int(atomic.LoadUint64(&mockConn.Flushes)))
+}
+
+func TestBroadcastWithFlushInterval(t *testing.T) {
+	pool := getMockPool()
+	broadcast := New(&Options{
+		Redis:         pool,
+		Metrics:       statsd.NewClient(ioutil.Discard),
+		Log:           log.Log,
+		FlushInterval: 2 * time.Millisecond,
+	})
+
+	sendMessages(broadcast)
+
+	mockConn := pool.Get().(*mocks.NoOpRedisConn)
+	assert.Equal(t, 0, int(atomic.LoadUint64(&mockConn.Flushes)))
+	<-time.After(3 * time.Millisecond)
+	assert.Equal(t, 1, int(atomic.LoadUint64(&mockConn.Flushes)))
+}
+
+func TestBroadcastWithFlushIntervalStop(t *testing.T) {
+	pool := getMockPool()
+	broadcast := New(&Options{
+		Redis:         pool,
+		Metrics:       statsd.NewClient(ioutil.Discard),
+		Log:           log.Log,
+		FlushInterval: 10 * time.Second,
+	})
+
+	sendMessages(broadcast)
+
+	mockConn := pool.Get().(*mocks.NoOpRedisConn)
+	assert.Equal(t, 0, int(atomic.LoadUint64(&mockConn.Flushes)))
+	broadcast.Stop()
+	<-broadcast.Done
+	assert.Equal(t, 1, int(atomic.LoadUint64(&mockConn.Flushes)))
+}
+
+func getMockPool() RedisPool {
+	pool := &mockRedisPool{}
+	pool.On("Get").Return(mocks.NewNoOpRedisConn())
+	return pool
+}
+
+func sendMessages(broadcast *Broadcast) {
+	nsqMsg := nsq.NewMessage(newNSQMessageId("nsq__message__id"), []byte(`{"projectId":"gy2d"}`))
+	broadcast.HandleMessage(nsqMsg)
+	broadcast.HandleMessage(nsqMsg)
 }
 
 func newNSQMessageId(id string) nsq.MessageID {
