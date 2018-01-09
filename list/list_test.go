@@ -10,7 +10,7 @@ import (
 	"github.com/segmentio/go-log"
 	"github.com/segmentio/nsq_to_redis/broadcast"
 	"github.com/segmentio/nsq_to_redis/broadcast/mocks"
-	statsd "github.com/statsd/client"
+	statsd "github.com/segmentio/statsdclient"
 )
 
 func BenchmarkList(b *testing.B) {

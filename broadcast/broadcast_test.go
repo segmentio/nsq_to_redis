@@ -11,7 +11,7 @@ import (
 	"github.com/segmentio/go-log"
 	"github.com/segmentio/nsq_to_redis/broadcast/mocks"
 	"github.com/segmentio/nsq_to_redis/ratelimit"
-	statsd "github.com/statsd/client"
+	statsd "github.com/segmentio/statsdclient"
 	"github.com/stretchr/testify/mock"
 )
 
