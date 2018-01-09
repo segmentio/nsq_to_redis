@@ -1,4 +1,11 @@
 
+2.1.0 / 2018-01-08
+==================
+
+  * [SCH-175] Update to buffer and pipeline commands (#16)
+  * Fix CI (#18)
+  * Fix --list-size (#15)
+
 v2.0.1 / 2017-04-26
 ===================
 
