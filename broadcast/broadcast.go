@@ -10,7 +10,7 @@ import (
 	"github.com/segmentio/go-log"
 	"github.com/segmentio/go-stats"
 	"github.com/segmentio/nsq_to_redis/ratelimit"
-	"github.com/segmentio/statsdclient"
+	statsd "github.com/statsd/client"
 	"github.com/tidwall/gjson"
 )
 
@@ -99,6 +99,8 @@ func (b *Broadcast) HandleMessage(msg *nsq.Message) error {
 		b.Log.Debug("ratelimit exceeded, discarding message")
 		return nil
 	}
+
+	// TODO: Remove segment metadata here.
 
 	conn, done := b.getConn()
 	defer done()
